@@ -1,0 +1,100 @@
+{
+  "name": "synthesis",
+  "version": "1.0.0",
+  "description": "Synthesis - Data Analysis Suite",
+  "main": "main/index.js",
+  "scripts": {
+    "build:ts": "tsc -p tsconfig.json",
+    "check:ts": "tsc -p tsconfig.json --noEmit",
+    "start": "npm run build:ts && electron .",
+    "start:conda": "npm run build:ts && SYNTHESIS_CONDA_ENV=workenv electron .",
+    "smoke:backend": "conda run -n workenv python scripts/smoke_backend.py",
+    "smoke:backend:quick": "conda run -n workenv python scripts/smoke_backend.py --quick",
+    "check:js": "npm run build:ts && node --check main/index.js && node --check main/preload.js && node --check main/updater.js && node --check renderer/js/app.js && node --check renderer/js/api.js && node --check renderer/js/charts.js && node --check renderer/js/utils.js && node --check renderer/js/tabs/visualization.js && node --check renderer/js/tabs/cleaning.js && node --check renderer/js/tabs/model-training.js && node --check renderer/js/tabs/algorithms.js",
+    "build:backend": "conda run -n workenv python -m PyInstaller --onefile --name server --distpath python-backend/dist --workpath python-backend/build --specpath python-backend python-backend/server.py",
+    "build": "npm run build:ts && npm run build:backend && electron-builder",
+    "build:win": "npm run build:ts && npm run build:backend && electron-builder --win",
+    "build:mac": "npm run build:ts && npm run build:backend && electron-builder --mac",
+    "build:linux": "npm run build:ts && npm run build:backend && electron-builder --linux",
+    "pack": "npm run build:ts && npm run build:backend && electron-builder --dir",
+    "postinstall": "electron-builder install-app-deps"
+  },
+  "keywords": [
+    "data-analysis",
+    "machine-learning",
+    "visualization",
+    "electron"
+  ],
+  "author": "Synthesis",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^42.1.0",
+    "electron-builder": "^26.8.1",
+    "typescript": "^6.0.3"
+  },
+  "dependencies": {
+    "electron-log": "^5.4.4",
+    "electron-updater": "^6.3.4"
+  },
+  "build": {
+    "appId": "com.synthesis.app",
+    "productName": "Synthesis",
+    "copyright": "Copyright © 2026 Synthesis",
+    "directories": {
+      "output": "dist",
+      "buildResources": "assets"
+    },
+    "files": [
+      "main/**",
+      "renderer/**",
+      "assets/**"
+    ],
+    "extraResources": [
+      {
+        "from": "python-backend/dist",
+        "to": "python-backend",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ],
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "assets/icon.ico",
+      "artifactName": "${productName}-Setup-${version}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    },
+    "mac": {
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "icon": "assets/icon.icns",
+      "category": "public.app-category.developer-tools",
+      "artifactName": "${productName}-${version}-mac.${ext}"
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb",
+        "rpm"
+      ],
+      "icon": "assets/icon.png",
+      "category": "Science",
+      "artifactName": "${productName}-${version}.${ext}"
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "your-github-user",
+      "repo": "synthesis",
+      "releaseType": "release"
+    }
+  }
+}

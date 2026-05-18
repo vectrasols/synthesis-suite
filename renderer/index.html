@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Synthesis - Professional Data Analysis & Machine Learning Suite" />
+  <title>Synthesis — Data Analysis Suite</title>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+  <!-- Plotly.js -->
+  <script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
+
+  <!-- PapaParse for CSV -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+
+  <!-- App styles -->
+  <link rel="stylesheet" href="css/app.css" />
+</head>
+<body class="theme-dark" data-theme="dark">
+
+  <!-- ── Splash / Loading overlay ───────────────────────────────────────────── -->
+  <div id="splash" class="splash">
+    <div class="splash-inner">
+      <div class="splash-logo">
+        <img class="splash-icon" src="../assets/icon.png" alt="" />
+        <span class="splash-brand">Synthesis</span>
+      </div>
+      <div class="splash-progress">
+        <div class="splash-bar" id="splashBar"></div>
+      </div>
+      <p class="splash-status" id="splashStatus">Starting backend engine…</p>
+    </div>
+  </div>
+
+  <!-- ── Update notification banner ────────────────────────────────────────── -->
+  <div id="updateBanner" class="update-banner hidden">
+    <span id="updateBannerText">A new version is available</span>
+    <button id="updateInstallBtn" class="btn btn-sm btn-accent">Install &amp; Restart</button>
+    <button id="updateDismissBtn" class="btn btn-sm btn-ghost">Dismiss</button>
+  </div>
+
+  <!-- ── App Shell ──────────────────────────────────────────────────────────── -->
+  <div id="app" class="app hidden">
+
+    <!-- Top Bar -->
+    <header class="topbar">
+      <div class="topbar-brand">
+        <img class="topbar-logo" src="../assets/icon.png" alt="" />
+        <span class="topbar-title">Synthesis</span>
+        <span class="topbar-version" id="appVersion">v1.0.0</span>
+      </div>
+
+      <nav class="tab-nav" id="tabNav" role="tablist">
+        <button class="tab-btn active" data-tab="visualization" role="tab" id="tab-viz">
+          <span class="tab-icon">📊</span>
+          <span class="tab-label">Explore</span>
+        </button>
+        <button class="tab-btn" data-tab="cleaning" role="tab" id="tab-clean">
+          <span class="tab-icon">🧹</span>
+          <span class="tab-label">Prepare</span>
+        </button>
+        <button class="tab-btn" data-tab="model" role="tab" id="tab-model">
+          <span class="tab-icon">🤖</span>
+          <span class="tab-label">Models</span>
+        </button>
+        <button class="tab-btn" data-tab="algorithms" role="tab" id="tab-algo">
+          <span class="tab-icon">🧠</span>
+          <span class="tab-label">Methods</span>
+        </button>
+      </nav>
+
+      <div class="topbar-actions">
+        <select id="themeSelect" class="theme-select" title="Switch theme">
+          <option value="dark">🌑 Dark</option>
+          <option value="light">☀️ Light</option>
+          <option value="solarized_light">🌅 Solarized Light</option>
+          <option value="solarized_dark">🌆 Solarized Dark</option>
+          <option value="nord">❄️ Nord</option>
+          <option value="ocean_blue">🌊 Ocean Blue</option>
+          <option value="monokai">🎨 Monokai</option>
+          <option value="dracula">🧛 Dracula</option>
+          <option value="sepia">📜 Sepia</option>
+          <option value="high_contrast">⚡ High Contrast</option>
+        </select>
+      </div>
+    </header>
+
+    <!-- Status Bar -->
+    <div class="statusbar" id="statusbar">
+      <span id="statusText">Ready. Load a data file to begin.</span>
+      <div class="statusbar-right">
+        <span id="dataInfo" class="data-info"></span>
+      </div>
+    </div>
+
+    <!-- Tab Panels -->
+    <main class="main-content">
+
+      <!-- ── TAB 1: Visualization ─────────────────────────────────────────── -->
+      <section class="tab-panel active" id="panel-visualization" role="tabpanel">
+        <div class="panel-split">
+
+          <!-- Left sidebar -->
+          <aside class="sidebar" id="viz-sidebar">
+            <div class="sidebar-scroll">
+
+              <!-- Dataset -->
+              <div class="card" id="card-dataset">
+                <div class="card-header">Dataset</div>
+                <div class="card-body">
+                  <div id="dropZone" class="drop-zone">
+                    <div class="drop-zone-icon">📂</div>
+                    <div class="drop-zone-text">Drop a file here or</div>
+                    <button class="btn btn-primary btn-sm" id="loadFileBtn">Browse File</button>
+                  </div>
+                  <div class="file-info hidden" id="fileInfo">
+                    <span class="file-name" id="fileName">—</span>
+                    <span class="file-meta" id="fileMeta">—</span>
+                  </div>
+                  <div class="import-grid">
+                    <button class="btn btn-ghost btn-sm" id="pasteBtn">📋 Paste</button>
+                    <button class="btn btn-ghost btn-sm" id="manualBtn">✏️ Enter</button>
+                    <button class="btn btn-ghost btn-sm" id="urlBtn">🌐 URL</button>
+                    <button class="btn btn-ghost btn-sm" id="sampleBtn">📊 Sample</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Columns -->
+              <div class="card">
+                <div class="card-header">Columns</div>
+                <div class="card-body form-grid">
+                  <label>X-axis</label>
+                  <select id="xCol" class="select"><option value="">Select…</option></select>
+                  <label>Y-axis</label>
+                  <select id="yCol" class="select"><option value="">Select…</option></select>
+                  <label>Z-axis (3D)</label>
+                  <select id="zCol" class="select"><option value="">Select Z…</option></select>
+                </div>
+              </div>
+
+              <!-- Chart Type -->
+              <div class="card">
+                <div class="card-header">Chart Type</div>
+                <div class="card-body">
+                  <select id="chartType" class="select">
+                    <optgroup label="2D Charts">
+                      <option value="line">Line Plot</option>
+                      <option value="bar">Bar Plot</option>
+                      <option value="scatter">Scatter Plot</option>
+                      <option value="histogram">Histogram</option>
+                      <option value="box">Box Plot</option>
+                      <option value="violin">Violin Plot</option>
+                      <option value="pie">Pie Chart</option>
+                      <option value="heatmap">Heatmap</option>
+                      <option value="kde">KDE Plot</option>
+                    </optgroup>
+                    <optgroup label="3D Charts">
+                      <option value="scatter3d">3D Scatter</option>
+                      <option value="surface3d">3D Surface</option>
+                      <option value="wireframe3d">3D Wireframe</option>
+                      <option value="bar3d">3D Bar</option>
+                    </optgroup>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Customization -->
+              <div class="card">
+                <div class="card-header">Presentation</div>
+                <div class="card-body form-grid">
+                  <label>Title</label>
+                  <input type="text" id="chartTitle" class="input" value="My Chart" />
+                  <label>Bins</label>
+                  <input type="range" id="chartBins" min="5" max="100" value="20" class="range" />
+                  <label>Opacity</label>
+                  <input type="range" id="chartOpacity" min="10" max="100" value="70" class="range" />
+                  <label class="toggle-row">
+                    <input type="checkbox" id="useHue" />
+                    <span>Auto Hue</span>
+                  </label>
+                  <label class="toggle-row">
+                    <input type="checkbox" id="showStats" />
+                    <span>Stats Overlay</span>
+                  </label>
+                </div>
+              </div>
+
+              <!-- Filtering -->
+              <div class="card">
+                <div class="card-header">Filters</div>
+                <div class="card-body form-grid">
+                  <label>Column</label>
+                  <select id="filterCol" class="select"><option value="">Select…</option></select>
+                  <label>Condition</label>
+                  <select id="filterCond" class="select">
+                    <option value="equals">Equals</option>
+                    <option value="not_equals">Not Equals</option>
+                    <option value="gt">Greater Than</option>
+                    <option value="lt">Less Than</option>
+                    <option value="gte">Greater or Equal</option>
+                    <option value="lte">Less or Equal</option>
+                    <option value="contains">Contains</option>
+                    <option value="in_range">In Range (min,max)</option>
+                  </select>
+                  <label>Value</label>
+                  <input type="text" id="filterValue" class="input" placeholder="Value…" />
+                  <label>Or pick</label>
+                  <select id="filterPick" class="select"><option value="">Pick value…</option></select>
+                  <div class="btn-row">
+                    <button class="btn btn-primary btn-sm" id="applyFilterBtn">Apply</button>
+                    <button class="btn btn-ghost btn-sm" id="clearFilterBtn">Clear All</button>
+                  </div>
+                  <div class="filter-chips" id="filterChips"></div>
+                </div>
+              </div>
+
+              <!-- Actions -->
+              <div class="card">
+                <div class="card-header">Export</div>
+                <div class="card-body">
+                  <button class="btn btn-accent w-full" id="exportChartBtn">Export Chart (PNG)</button>
+                </div>
+              </div>
+
+            </div><!-- /sidebar-scroll -->
+          </aside>
+
+          <!-- Main chart area -->
+          <div class="content-area">
+            <div id="chartContainer" class="chart-container">
+              <div class="chart-placeholder" id="chartPlaceholder">
+                <div class="placeholder-icon">📊</div>
+                <p>Load a dataset and configure the chart options to get started</p>
+              </div>
+              <div id="chartDiv" class="plotly-chart"></div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ── TAB 2: Data Cleaning ───────────────────────────────────────────── -->
+      <section class="tab-panel" id="panel-cleaning" role="tabpanel">
+        <div class="panel-split">
+
+          <aside class="sidebar">
+            <div class="sidebar-scroll">
+
+              <div class="card">
+                <div class="card-header">🔧 Missing Values</div>
+                <div class="card-body form-grid">
+                  <label>Method</label>
+                  <select id="missingMethod" class="select">
+                    <option value="none">No change</option>
+                    <option value="drop">Drop rows</option>
+                    <option value="mean">Fill with Mean</option>
+                    <option value="median">Fill with Median</option>
+                    <option value="distribution">Auto Mean/Median/Mode</option>
+                    <option value="ffill">Forward Fill</option>
+                    <option value="bfill">Backward Fill</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="card">
+                <div class="card-header">📍 Outliers (IQR)</div>
+                <div class="card-body form-grid">
+                  <label class="toggle-row">
+                    <input type="checkbox" id="removeOutliers" />
+                    <span>Remove Outliers</span>
+                  </label>
+                  <label>Threshold</label>
+                  <input type="range" id="outlierThreshold" min="5" max="50" value="15" class="range" />
+                  <span class="range-label" id="outlierLabel">IQR × 1.5</span>
+                </div>
+              </div>
+
+              <div class="card">
+                <div class="card-header">🔄 Data Type</div>
+                <div class="card-body form-grid">
+                  <label>Column</label>
+                  <select id="dtypeCol" class="select"><option value="">Select…</option></select>
+                  <label>Convert to</label>
+                  <select id="dtypeConvert" class="select">
+                    <option value="">No change</option>
+                    <option value="numeric">Numeric</option>
+                    <option value="categorical">Categorical</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="card">
+                <div class="card-header">🏷️ Encoding</div>
+                <div class="card-body form-grid">
+                  <label>Column</label>
+                  <select id="encodeCol" class="select"><option value="">Select…</option></select>
+                  <label>Method</label>
+                  <select id="encodeMethod" class="select">
+                    <option value="">No encoding</option>
+                    <option value="label">Label Encoding</option>
+                    <option value="factorize">Factorization</option>
+                    <option value="onehot">One-Hot Encoding</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="card">
+                <div class="card-header">⚙️ Binarization</div>
+                <div class="card-body form-grid">
+                  <label>Column</label>
+                  <select id="binarizeCol" class="select">
+                    <option value="">No binarization</option>
+                    <option value="__all_numeric__">All Numeric Columns</option>
+                  </select>
+                  <label>Threshold</label>
+                  <input type="number" id="binarizeThreshold" class="input" value="0" step="0.1" />
+                </div>
+              </div>
+
+              <div class="card">
+                <div class="card-header">📊 Feature Scaling</div>
+                <div class="card-body form-grid">
+                  <label>Method</label>
+                  <select id="scaleMethod" class="select">
+                    <option value="">No scaling</option>
+                    <option value="standard">Standard Scaler</option>
+                    <option value="minmax">MinMax Scaler</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="card">
+                <div class="card-header">🎚️ Feature Selection</div>
+                <div class="card-body form-grid">
+                  <label>Target</label>
+                  <select id="selectionTarget" class="select"><option value="">Select…</option></select>
+                  <label>Method</label>
+                  <select id="selectionMethod" class="select">
+                    <option value="">No selection</option>
+                    <option value="variance">Variance Threshold</option>
+                    <option value="correlation">Correlation Coefficient</option>
+                    <option value="info_gain">Information Gain</option>
+                    <option value="chi2">Chi-Square</option>
+                    <option value="fisher">Fisher Score</option>
+                    <option value="wrapper_rfe">Wrapper RFE</option>
+                    <option value="embedded">Embedded Importance</option>
+                  </select>
+                  <label>Top K</label>
+                  <input type="number" id="selectionK" class="input" min="1" max="100" value="5" />
+                </div>
+              </div>
+
+              <div class="card">
+                <div class="card-header">🧬 Feature Extraction</div>
+                <div class="card-body form-grid">
+                  <label>Target</label>
+                  <select id="extractionTarget" class="select"><option value="">Optional…</option></select>
+                  <label>Method</label>
+                  <select id="extractionMethod" class="select">
+                    <option value="">No extraction</option>
+                    <option value="pca">PCA</option>
+                    <option value="lda">LDA</option>
+                    <option value="autoencoder">Autoencoder</option>
+                  </select>
+                  <label>Components</label>
+                  <input type="number" id="extractionComponents" class="input" min="1" max="20" value="2" />
+                </div>
+              </div>
+
+              <div class="card">
+                <div class="card-header">⚙️ Actions</div>
+                <div class="card-body">
+                  <button class="btn btn-ghost w-full" id="removeDupBtn">🗑️ Remove Duplicates</button>
+                  <button class="btn btn-primary w-full mt-2" id="applyCleanBtn">✨ Apply Cleaning</button>
+                  <button class="btn btn-accent w-full mt-2" id="exportCleanBtn">💾 Export Cleaned CSV</button>
+                </div>
+              </div>
+
+            </div>
+          </aside>
+
+          <div class="content-area">
+            <div class="clean-panels">
+              <div class="card flex-1">
+                <div class="card-header">📋 Cleaning Log</div>
+                <div class="card-body">
+                  <div class="log-area" id="cleanLog">
+                    <span class="log-placeholder">Cleaning operations will appear here…</span>
+                  </div>
+                </div>
+              </div>
+              <div class="card flex-2">
+                <div class="card-header flex-between">
+                  <span>👁️ Data Preview</span>
+                  <select id="previewSource" class="select select-sm">
+                    <option value="raw">Original Data</option>
+                    <option value="cleaned">Cleaned Data</option>
+                  </select>
+                </div>
+                <div class="card-body p-0">
+                  <div class="table-wrapper">
+                    <table class="data-table" id="previewTable">
+                      <thead id="previewHead"></thead>
+                      <tbody id="previewBody"></tbody>
+                    </table>
+                    <div class="table-placeholder" id="tablePlaceholder">Load a dataset to see preview</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ── TAB 3: Model Training ──────────────────────────────────────────── -->
+      <section class="tab-panel" id="panel-model" role="tabpanel">
+        <div class="panel-split">
+
+          <aside class="sidebar">
+            <div class="sidebar-scroll">
+
+              <div class="card">
+                <div class="card-header">🤖 Model</div>
+                <div class="card-body form-grid">
+                  <label>Type</label>
+                  <select id="modelType" class="select">
+                    <optgroup label="Regression">
+                      <option value="linear_regression">Linear Regression</option>
+                      <option value="polynomial_regression">Polynomial Regression</option>
+                      <option value="ridge_regression">Ridge Regression</option>
+                      <option value="lasso_regression">Lasso Regression</option>
+                      <option value="decision_tree_regression">Decision Tree (Reg.)</option>
+                      <option value="random_forest_regression">Random Forest (Reg.)</option>
+                      <option value="gradient_boosting_regression">Gradient Boosting (Reg.)</option>
+                      <option value="adaboost_regression">AdaBoost (Reg.)</option>
+                      <option value="bagging_regression">Bagging (Reg.)</option>
+                      <option value="stacking_regression">Stacking (Reg.)</option>
+                      <option value="svr">SVR</option>
+                      <option value="knn_regression">KNN Regression</option>
+                    </optgroup>
+                    <optgroup label="Classification">
+                      <option value="logistic_regression">Logistic Regression</option>
+                      <option value="naive_bayes">Naive Bayes</option>
+                      <option value="decision_tree_classification">Decision Tree (Class.)</option>
+                      <option value="random_forest_classification">Random Forest (Class.)</option>
+                      <option value="gradient_boosting_classification">Gradient Boosting (Class.)</option>
+                      <option value="adaboost_classification">AdaBoost (Class.)</option>
+                      <option value="bagging_classification">Bagging (Class.)</option>
+                      <option value="stacking_classification">Stacking (Class.)</option>
+                      <option value="svm_classification">SVM</option>
+                      <option value="knn_classification">KNN Classification</option>
+                    </optgroup>
+                    <optgroup label="Semi-Supervised">
+                      <option value="self_training_classification">Self-Training Classification</option>
+                    </optgroup>
+                    <optgroup label="Clustering">
+                      <option value="kmeans">K-Means Clustering</option>
+                      <option value="dbscan">DBSCAN Clustering</option>
+                    </optgroup>
+                    <optgroup label="Dimensionality Reduction">
+                      <option value="pca_projection">PCA Projection</option>
+                      <option value="ica_projection">ICA Projection</option>
+                    </optgroup>
+                    <optgroup label="Anomaly Detection">
+                      <option value="zscore_anomaly">Z-Score Detection</option>
+                      <option value="isolation_forest">Isolation Forest</option>
+                      <option value="one_class_svm">One-Class SVM</option>
+                    </optgroup>
+                  </select>
+                  <label id="targetColLabel">Target Column</label>
+                  <select id="targetCol" class="select"><option value="">Select target…</option></select>
+                </div>
+              </div>
+
+              <div class="card">
+                <div class="card-header">⚙️ Configuration</div>
+                <div class="card-body form-grid">
+                  <label>Test Size <span id="testSizeLabel" class="param-val">20%</span></label>
+                  <input type="range" id="testSize" min="10" max="50" value="20" class="range" />
+                  <label class="toggle-row">
+                    <input type="checkbox" id="scaleDataCheck" checked />
+                    <span>Scale Data</span>
+                  </label>
+                  <label>Scaler</label>
+                  <select id="scaleTypeModel" class="select">
+                    <option value="standard">Standard Scaler</option>
+                    <option value="minmax">MinMax Scaler</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="card">
+                <div class="card-header">🔧 Hyperparameters</div>
+                <div class="card-body form-grid">
+                  <label>n_estimators <span id="nestLabel" class="param-val">100</span></label>
+                  <input type="range" id="nEstimators" min="10" max="500" step="10" value="100" class="range" />
+                  <label>max_depth <span id="depthLabel" class="param-val">10</span></label>
+                  <input type="range" id="maxDepth" min="1" max="50" value="10" class="range" />
+                  <label>n_neighbors <span id="kLabel" class="param-val">5</span></label>
+                  <input type="range" id="nNeighbors" min="1" max="20" value="5" class="range" />
+                  <label>n_clusters <span id="cLabel" class="param-val">3</span></label>
+                  <input type="range" id="nClusters" min="2" max="10" value="3" class="range" />
+                </div>
+              </div>
+
+              <button class="btn btn-accent btn-lg w-full" id="trainModelBtn">
+                <span class="btn-icon">🎯</span> Train Model
+              </button>
+
+            </div>
+          </aside>
+
+          <div class="content-area">
+            <div class="card h-full">
+              <div class="card-header">📊 Model Results</div>
+              <div class="card-body results-body">
+                <div id="modelResults" class="model-results-placeholder">
+                  <div class="results-icon">🤖</div>
+                  <p>Configure and train a model to see results here</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ── TAB 4: Algorithms Lab ──────────────────────────────────────────── -->
+      <section class="tab-panel" id="panel-algorithms" role="tabpanel">
+        <div class="panel-split">
+
+          <aside class="sidebar sidebar-narrow">
+            <div class="sidebar-scroll">
+
+              <div class="card">
+                <div class="card-header">🧠 Algorithm</div>
+                <div class="card-body form-grid">
+                  <label>Choose</label>
+                  <select id="algoSelect" class="select">
+                    <optgroup label="Machine Learning Map">
+                      <option value="ml_taxonomy">ML Taxonomy from Reference Images</option>
+                    </optgroup>
+                    <optgroup label="Search & Graph">
+                      <option value="alpha_beta">Alpha-Beta Minimax</option>
+                      <option value="astar">A* Search</option>
+                      <option value="bfs_dfs">BFS and DFS</option>
+                    </optgroup>
+                    <optgroup label="Optimization">
+                      <option value="genetic_algorithm">Genetic Algorithm</option>
+                      <option value="hill_climbing">Hill Climbing (TSP)</option>
+                    </optgroup>
+                    <optgroup label="Machine Learning">
+                      <option value="decision_tree_demo">Decision Tree Classifier</option>
+                      <option value="naive_bayes_demo">Naive Bayes Classifier</option>
+                      <option value="ensemble_methods_demo">Ensemble Methods Comparison</option>
+                      <option value="kfold">K-Fold Validation</option>
+                      <option value="kmeans_demo">K-Means Clustering</option>
+                      <option value="dbscan_demo">DBSCAN Clustering</option>
+                      <option value="pca_demo">PCA Projection</option>
+                      <option value="ica_demo">ICA Projection</option>
+                      <option value="apriori_demo">Apriori Association Rules</option>
+                      <option value="fpgrowth_demo">FP-Growth Frequent Patterns</option>
+                      <option value="zscore_anomaly_demo">Z-Score Anomaly Detection</option>
+                      <option value="isolation_forest_demo">Isolation Forest Detection</option>
+                      <option value="one_class_svm_demo">One-Class SVM Detection</option>
+                      <option value="logistic_iris">Logistic Regression (Iris)</option>
+                      <option value="logistic_breast">Logistic Regression (Breast Cancer)</option>
+                      <option value="logistic_digits">Logistic Regression (Digits)</option>
+                      <option value="onehot">One-Hot Encoding</option>
+                      <option value="svm_demo">SVM Classification</option>
+                    </optgroup>
+                    <optgroup label="Semi-Supervised">
+                      <option value="self_training_demo">Self-Training</option>
+                      <option value="co_training_demo">Co-Training</option>
+                    </optgroup>
+                    <optgroup label="Reinforcement Learning">
+                      <option value="q_learning_demo">Q-Learning</option>
+                      <option value="policy_optimization_demo">Policy Optimization</option>
+                      <option value="dynamic_programming_demo">Dynamic Programming</option>
+                    </optgroup>
+                    <optgroup label="Time Series">
+                      <option value="time_series_demo">Time Series Baselines</option>
+                    </optgroup>
+                  </select>
+                </div>
+              </div>
+
+              <div class="btn-col">
+                <button class="btn btn-accent btn-lg w-full" id="runAlgoBtn">▶️ Run Algorithm</button>
+                <button class="btn btn-ghost w-full mt-2" id="clearAlgoBtn">🧼 Clear</button>
+              </div>
+
+            </div>
+          </aside>
+
+          <div class="content-area">
+            <div class="algo-panels">
+              <div class="card algo-output-card">
+                <div class="card-header">📋 Output</div>
+                <div class="card-body p-0">
+                  <pre id="algoOutput" class="algo-output">Run an algorithm to see output…</pre>
+                </div>
+              </div>
+              <div class="card flex-2">
+                <div class="card-header">📈 Visualization</div>
+                <div class="card-body p-0">
+                  <div id="algoChartDiv" class="plotly-chart algo-chart">
+                    <div class="chart-placeholder">
+                      <div class="placeholder-icon">📈</div>
+                      <p>Algorithm visualization will appear here</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+    </main><!-- /main-content -->
+
+    <!-- Loading spinner overlay (for operations) -->
+    <div class="op-spinner hidden" id="opSpinner">
+      <div class="spinner-ring"></div>
+      <p id="spinnerLabel">Processing…</p>
+    </div>
+
+  </div><!-- /app -->
+
+  <!-- ── Modals ─────────────────────────────────────────────────────────────── -->
+
+  <!-- URL Import Modal -->
+  <div class="modal-overlay hidden" id="urlModal">
+    <div class="modal">
+      <div class="modal-header">🌐 Import from URL</div>
+      <div class="modal-body form-grid">
+        <label>URL</label>
+        <input type="url" id="urlInput" class="input" placeholder="https://example.com/data.csv" />
+        <label>Format</label>
+        <select id="urlFormat" class="select">
+          <option value="auto">Auto-detect</option>
+          <option value="csv">CSV</option>
+          <option value="json">JSON</option>
+          <option value="excel">Excel</option>
+          <option value="tsv">TSV</option>
+        </select>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" id="urlCancelBtn">Cancel</button>
+        <button class="btn btn-accent" id="urlLoadBtn">Load</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sample Data Modal -->
+  <div class="modal-overlay hidden" id="sampleModal">
+    <div class="modal">
+      <div class="modal-header">📊 Sample Datasets</div>
+      <div class="modal-body form-grid">
+        <label>Dataset</label>
+        <select id="sampleSelect" class="select">
+          <option value="iris">Iris (Classification)</option>
+          <option value="breast_cancer">Breast Cancer (Classification)</option>
+          <option value="digits">Digits (Classification)</option>
+          <option value="sales">Random Sales Data</option>
+          <option value="weather">Random Weather Data</option>
+          <option value="ecommerce">Random E-commerce Data</option>
+        </select>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" id="sampleCancelBtn">Cancel</button>
+        <button class="btn btn-accent" id="sampleLoadBtn">Load Dataset</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Manual Entry Modal -->
+  <div class="modal-overlay hidden" id="manualModal">
+    <div class="modal modal-wide">
+      <div class="modal-header">✏️ Manual Data Entry</div>
+      <div class="modal-body">
+        <p class="modal-hint">Build a table directly, or paste CSV/TSV text and parse it into editable rows:</p>
+        <div class="form-grid" style="grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; align-items: end;">
+          <div>
+            <label>Rows</label>
+            <input type="number" id="manualRows" class="input" min="1" max="1000" value="5" />
+          </div>
+          <div>
+            <label>Cols</label>
+            <input type="number" id="manualCols" class="input" min="1" max="50" value="3" />
+          </div>
+          <div>
+            <button class="btn btn-ghost btn-sm w-full" id="createManualTableBtn">Create Table</button>
+          </div>
+        </div>
+        <div class="manual-table-wrap mt-2" id="manualGridWrap"></div>
+        <p class="modal-hint mt-3">Or paste CSV/TSV text below:</p>
+        <textarea id="manualText" class="textarea" rows="10"
+          placeholder="Name,Age,Score&#10;Alice,30,85&#10;Bob,25,92"></textarea>
+        <button class="btn btn-ghost btn-sm mt-2" id="parseManualBtn">⚙️ Parse Text</button>
+        <div class="manual-table-wrap" id="manualTableWrap"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" id="manualCancelBtn">Cancel</button>
+        <button class="btn btn-accent" id="manualLoadBtn">Load Data</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Paste Modal -->
+  <div class="modal-overlay hidden" id="pasteModal">
+    <div class="modal modal-wide">
+      <div class="modal-header">📋 Paste Data</div>
+      <div class="modal-body">
+        <p class="modal-hint">Paste data from a spreadsheet (Excel/Google Sheets) or paste CSV text:</p>
+        <textarea id="pasteText" class="textarea" rows="12"
+          placeholder="Paste CSV or tab-separated data here…"></textarea>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" id="pasteCancelBtn">Cancel</button>
+        <button class="btn btn-accent" id="pasteLoadBtn">Import</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="js/api.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/charts.js"></script>
+  <script src="js/tabs/visualization.js"></script>
+  <script src="js/tabs/cleaning.js"></script>
+  <script src="js/tabs/model-training.js"></script>
+  <script src="js/tabs/algorithms.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
