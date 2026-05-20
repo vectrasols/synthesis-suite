@@ -1,0 +1,89 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Windows
+            os: windows-latest
+            script: build:win
+            artifact: windows-installer
+            paths: |
+              dist/*.exe
+              dist/*.blockmap
+              dist/latest*.yml
+          - name: macOS
+            os: macos-13
+            script: build:mac
+            artifact: macos-installer
+            paths: |
+              dist/*.dmg
+              dist/*.zip
+              dist/*.blockmap
+              dist/latest*.yml
+          - name: Linux
+            os: ubuntu-latest
+            script: build:linux
+            artifact: linux-installer
+            paths: |
+              dist/*.AppImage
+              dist/*.deb
+              dist/*.rpm
+              dist/*.blockmap
+              dist/latest*.yml
+
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      CSC_IDENTITY_AUTO_DISCOVERY: false
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: python-backend/requirements.txt
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: Install Python dependencies
+        run: python -m pip install -r python-backend/requirements.txt
+
+      - name: Verify JavaScript bundle
+        run: npm run check:js
+
+      - name: Smoke test backend
+        run: npm run smoke:backend:quick
+
+      - name: Build and publish installer
+        run: npm run ${{ matrix.script }} -- --publish onTagOrDraft
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: ${{ matrix.paths }}
+          if-no-files-found: error

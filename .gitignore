@@ -24,6 +24,8 @@ builder-debug.yml
 builder-effective-config.yaml
 
 # Python backend artifacts
+__pycache__/
+*.py[cod]
 python-backend/__pycache__/
 python-backend/**/*.pyc
 python-backend/**/*.pyo

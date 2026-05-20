@@ -17,7 +17,7 @@ let tray = null;
 let pythonProcess = null;
 let backendPort = null;
 const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
-const defaultCondaEnv = process.env.SYNTHESIS_CONDA_ENV || 'workenv';
+const projectRoot = path.join(__dirname, '..');
 
 // ─── Find a free port ─────────────────────────────────────────────────────────
 function getFreePort() {
@@ -32,11 +32,29 @@ function getFreePort() {
   });
 }
 
-function getPythonPathFromEnvRoot(envRoot) {
+function getPythonPathsFromEnvRoot(envRoot) {
   if (!envRoot) return null;
   return process.platform === 'win32'
-    ? path.join(envRoot, 'python.exe')
-    : path.join(envRoot, 'bin', 'python');
+    ? [path.join(envRoot, 'Scripts', 'python.exe'), path.join(envRoot, 'python.exe')]
+    : [path.join(envRoot, 'bin', 'python')];
+}
+
+function commandWorks(command) {
+  try {
+    execFileSync(command, ['--version'], { stdio: 'ignore' });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function findPythonInEnvRoot(envRoot) {
+  for (const pythonPath of getPythonPathsFromEnvRoot(envRoot) || []) {
+    if (fs.existsSync(pythonPath) && commandWorks(pythonPath)) {
+      return pythonPath;
+    }
+  }
+  return null;
 }
 
 function findCondaEnvRoot(envName) {
@@ -54,29 +72,41 @@ function findCondaEnvRoot(envName) {
 
 function resolveDevPython() {
   const explicitPython = process.env.SYNTHESIS_PYTHON;
-  if (explicitPython && fs.existsSync(explicitPython)) {
-    return explicitPython;
+  if (explicitPython) {
+    if (fs.existsSync(explicitPython) || commandWorks(explicitPython)) {
+      return explicitPython;
+    }
+    throw new Error(`SYNTHESIS_PYTHON does not point to a runnable Python: ${explicitPython}`);
   }
 
-  const condaRoot = findCondaEnvRoot(defaultCondaEnv);
-  const condaPython = getPythonPathFromEnvRoot(condaRoot);
-  if (condaPython && fs.existsSync(condaPython)) {
-    return condaPython;
+  const envRoots = [
+    process.env.SYNTHESIS_VENV,
+    path.join(projectRoot, '.venv'),
+    process.env.VIRTUAL_ENV,
+    process.env.CONDA_PREFIX,
+  ];
+
+  for (const envRoot of envRoots) {
+    const pythonPath = findPythonInEnvRoot(envRoot);
+    if (pythonPath) return pythonPath;
   }
 
-  const activeCondaPython = getPythonPathFromEnvRoot(process.env.CONDA_PREFIX);
-  if (activeCondaPython && fs.existsSync(activeCondaPython)) {
-    return activeCondaPython;
+  const requestedCondaEnv = process.env.SYNTHESIS_CONDA_ENV;
+  if (requestedCondaEnv) {
+    const condaPython = findPythonInEnvRoot(findCondaEnvRoot(requestedCondaEnv));
+    if (condaPython) return condaPython;
   }
 
-  if (process.env.SYNTHESIS_ALLOW_SYSTEM_PYTHON === '1') {
-    return process.platform === 'win32' ? 'python' : 'python3';
+  const candidates = process.platform === 'win32' ? ['python'] : ['python3', 'python'];
+  for (const candidate of candidates) {
+    if (commandWorks(candidate)) {
+      return candidate;
+    }
   }
 
   throw new Error(
-    `Conda environment '${defaultCondaEnv}' was not found. ` +
-    `Create it or set SYNTHESIS_CONDA_ENV / SYNTHESIS_PYTHON. ` +
-    `Set SYNTHESIS_ALLOW_SYSTEM_PYTHON=1 only if you intentionally want the system Python fallback.`
+    `Python 3 was not found. Create .venv, activate a virtual environment, ` +
+    `or set SYNTHESIS_PYTHON to a Python executable.`
   );
 }
 
@@ -88,11 +118,11 @@ async function startPythonBackend() {
   let pythonExe, serverScript;
 
   if (isDev) {
-    // Development: prefer the named Conda environment for reproducible backend deps.
+    // Development: prefer project/local Python environments, with Conda still optional.
     pythonExe = resolveDevPython();
     serverScript = path.join(__dirname, '..', 'python-backend', 'server.py');
   } else {
-    // Production: use bundled PyInstaller binary
+    // Production: use the bundled backend binary built on the target OS.
     const resourcePath = (process as typeof process & { resourcesPath: string }).resourcesPath;
     const binaryName = process.platform === 'win32' ? 'server.exe' : 'server';
     serverScript = path.join(resourcePath, 'python-backend', binaryName);

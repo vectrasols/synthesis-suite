@@ -7,11 +7,11 @@
     "build:ts": "tsc -p tsconfig.json",
     "check:ts": "tsc -p tsconfig.json --noEmit",
     "start": "npm run build:ts && electron .",
-    "start:conda": "npm run build:ts && SYNTHESIS_CONDA_ENV=workenv electron .",
-    "smoke:backend": "conda run -n workenv python scripts/smoke_backend.py",
-    "smoke:backend:quick": "conda run -n workenv python scripts/smoke_backend.py --quick",
+    "setup:backend": "node scripts/run_python.js -m pip install -r python-backend/requirements.txt",
+    "smoke:backend": "node scripts/run_python.js scripts/smoke_backend.py",
+    "smoke:backend:quick": "node scripts/run_python.js scripts/smoke_backend.py --quick",
     "check:js": "npm run build:ts && node --check main/index.js && node --check main/preload.js && node --check main/updater.js && node --check renderer/js/app.js && node --check renderer/js/api.js && node --check renderer/js/charts.js && node --check renderer/js/utils.js && node --check renderer/js/tabs/visualization.js && node --check renderer/js/tabs/cleaning.js && node --check renderer/js/tabs/model-training.js && node --check renderer/js/tabs/algorithms.js",
-    "build:backend": "conda run -n workenv python -m PyInstaller --onefile --name server --distpath python-backend/dist --workpath python-backend/build --specpath python-backend python-backend/server.py",
+    "build:backend": "node scripts/build_backend.js",
     "build": "npm run build:ts && npm run build:backend && electron-builder",
     "build:win": "npm run build:ts && npm run build:backend && electron-builder --win",
     "build:mac": "npm run build:ts && npm run build:backend && electron-builder --mac",
@@ -66,10 +66,11 @@
       "artifactName": "${productName}-Setup-${version}.${ext}"
     },
     "nsis": {
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true,
+      "oneClick": true,
+      "perMachine": false,
       "createDesktopShortcut": true,
-      "createStartMenuShortcut": true
+      "createStartMenuShortcut": true,
+      "runAfterFinish": true
     },
     "mac": {
       "target": [
@@ -92,8 +93,6 @@
     },
     "publish": {
       "provider": "github",
-      "owner": "your-github-user",
-      "repo": "synthesis",
       "releaseType": "release"
     }
   }
