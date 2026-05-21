@@ -82,7 +82,7 @@ jobs:
         run: npm run smoke:backend:quick
 
       - name: Build and publish installer
-        run: npm run ${{ matrix.script }} -- --publish onTagOrDraft
+        run: npm run ${{ matrix.script }} -- --publish always
 
       - name: Upload workflow artifact
         uses: actions/upload-artifact@v6

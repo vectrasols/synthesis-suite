@@ -21,6 +21,7 @@ const CleanTab = (() => {
             'encodeMethod', 'binarizeCol', 'scaleMethod', 'selectionTarget',
             'selectionMethod', 'extractionTarget', 'extractionMethod',
         ].forEach(id => document.getElementById(id)?.addEventListener('change', updateCleaningAvailability));
+        renderHistory({ steps: [] });
     }
     function onDataLoaded(info) {
         setCleaningInfo(info);
@@ -286,18 +287,30 @@ const CleanTab = (() => {
     function renderHistory(history) {
         const select = document.getElementById('cleanHistorySelect');
         const rollbackBtn = document.getElementById('rollbackCleanBtn');
+        const refreshBtn = document.getElementById('refreshHistoryBtn');
         if (!select)
             return;
         const steps = history?.steps || [];
         select.innerHTML = '';
+        if (steps.length <= 1) {
+            select.appendChild(new Option('No rollback available', ''));
+            select.disabled = true;
+            if (rollbackBtn)
+                rollbackBtn.disabled = true;
+            if (refreshBtn)
+                refreshBtn.disabled = !_cols.length;
+            return;
+        }
         steps.forEach(step => {
             const label = `${step.index + 1}. ${step.label} (${step.rows}x${step.cols})${step.current ? ' - current' : ''}`;
             select.appendChild(new Option(label, String(step.index)));
         });
         select.value = String(history?.current ?? Math.max(0, steps.length - 1));
-        select.disabled = steps.length <= 1;
+        select.disabled = false;
         if (rollbackBtn)
-            rollbackBtn.disabled = steps.length <= 1;
+            rollbackBtn.disabled = false;
+        if (refreshBtn)
+            refreshBtn.disabled = !_cols.length;
     }
     async function rollbackCleaning() {
         const select = document.getElementById('cleanHistorySelect');

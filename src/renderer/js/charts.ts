@@ -11,15 +11,19 @@ const Charts = (() => {
 
     try {
       const fig = typeof figureJson === 'string' ? JSON.parse(figureJson) : figureJson;
-      return Plotly.react(el, fig.data || [], fig.layout || {}, {
+      const renderTask = Plotly.react(el, fig.data || [], fig.layout || {}, {
         responsive: true,
         displayModeBar: true,
         displaylogo: false,
         modeBarButtonsToRemove: ['sendDataToCloud'],
         toImageButtonOptions: { format: 'png', scale: 2 },
       });
+      return Promise.resolve(renderTask).then(() => {
+        updateExportButton(divId, el);
+      });
     } catch (e) {
       console.error('Chart render error:', e);
+      updateExportButton(divId, el);
     }
   }
 
@@ -33,6 +37,13 @@ const Charts = (() => {
     }
     const ph = el?.previousElementSibling;
     if (ph?.classList.contains('chart-placeholder')) ph.style.display = '';
+    updateExportButton(divId, el);
+  }
+
+  function updateExportButton(divId, el) {
+    if (divId !== 'chartDiv') return;
+    const exportBtn = document.getElementById('exportChartBtn');
+    if (exportBtn) exportBtn.disabled = !(el && Array.isArray(el.data) && el.data.length > 0);
   }
 
   async function refreshChart() {

@@ -21,7 +21,10 @@ const VizTab = (() => {
     };
     function init() {
         // File loading
-        document.getElementById('loadFileBtn')?.addEventListener('click', openFile);
+        document.getElementById('loadFileBtn')?.addEventListener('click', e => {
+            e.stopPropagation();
+            openFile();
+        });
         document.getElementById('pasteBtn')?.addEventListener('click', importFromClipboard);
         document.getElementById('manualBtn')?.addEventListener('click', () => Utils.showModal('manualModal'));
         document.getElementById('urlBtn')?.addEventListener('click', () => Utils.showModal('urlModal'));
@@ -270,7 +273,7 @@ const VizTab = (() => {
         updateFilterControls();
         const exportBtn = document.getElementById('exportChartBtn');
         if (exportBtn)
-            exportBtn.disabled = !cols.length;
+            exportBtn.disabled = !hasPlottedChart();
     }
     async function importFromClipboard() {
         try {
@@ -488,7 +491,7 @@ const VizTab = (() => {
         _dataInfo = info;
         const cols = info.columns || [];
         // Update file display
-        document.getElementById('dropZone')?.classList.add('hidden');
+        document.getElementById('dropZone')?.classList.remove('hidden');
         const fi = document.getElementById('fileInfo');
         if (fi)
             fi.classList.remove('hidden');
@@ -498,6 +501,15 @@ const VizTab = (() => {
         const fm = document.getElementById('fileMeta');
         if (fm)
             fm.textContent = `${info.rows.toLocaleString()} rows × ${info.cols} cols`;
+        const chips = document.getElementById('filterChips');
+        if (chips)
+            chips.innerHTML = '';
+        const filterValue = document.getElementById('filterValue');
+        if (filterValue)
+            filterValue.value = '';
+        const filterPick = document.getElementById('filterPick');
+        if (filterPick)
+            filterPick.innerHTML = '<option value="">Pick value…</option>';
         updateVisualizeAvailability();
         Utils.setDataInfo(info);
         Utils.setStatus(`Loaded: ${info.source}`);
@@ -554,15 +566,18 @@ const VizTab = (() => {
     }
     async function exportChart() {
         const div = document.getElementById('chartDiv');
-        if (!div || !div.data)
-            return Utils.toast('No chart to export', 'error');
+        if (!hasPlottedChart())
+            return Utils.toast('Plot a chart before exporting', 'error');
         try {
-            const savePath = window.electronAPI?.saveFile
+            const usingNativeSave = Boolean(window.electronAPI?.saveFile);
+            const savePath = usingNativeSave
                 ? await window.electronAPI.saveFile('chart.png', [
                     { name: 'PNG Files', extensions: ['png'] },
                     { name: 'SVG Files', extensions: ['svg'] },
                 ])
                 : null;
+            if (usingNativeSave && !savePath)
+                return;
             if (!savePath) {
                 const url = await Plotly.toImage(div, { format: 'png', scale: 2, width: 1400, height: 900 });
                 const a = document.createElement('a');
@@ -583,6 +598,10 @@ const VizTab = (() => {
         catch (e) {
             Utils.toast(`Export failed: ${e.message}`, 'error');
         }
+    }
+    function hasPlottedChart() {
+        const div = document.getElementById('chartDiv');
+        return Boolean(div && Array.isArray(div.data) && div.data.length > 0);
     }
     return { init, onDataLoaded };
 })();

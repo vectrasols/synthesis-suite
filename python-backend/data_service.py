@@ -6,9 +6,15 @@ Extracted from main.py for the FastAPI backend.
 import os
 import math
 import random
-from io import StringIO
+import re
+import html
+from http.cookiejar import CookieJar
+from io import BytesIO, StringIO
 from collections import deque
 from typing import Optional, Dict, Any, List
+from urllib.error import URLError
+from urllib.parse import parse_qs, unquote, urljoin, urlparse
+from urllib.request import HTTPCookieProcessor, Request, build_opener
 
 import pandas as pd
 import numpy as np
@@ -126,10 +132,14 @@ class DataStore:
             raise ValueError("No cleaning history available")
         if step_index < 0 or step_index >= len(self.cleaning_snapshots):
             raise ValueError("Cleaning step not found")
-        self.cleaning_index = step_index
         self.df_cleaned = self.cleaning_snapshots[step_index].copy()
+        self.cleaning_snapshots = self.cleaning_snapshots[: step_index + 1]
+        self.cleaning_steps = self.cleaning_steps[: step_index + 1]
+        for index, step in enumerate(self.cleaning_steps):
+            step["index"] = index
+        self.cleaning_index = len(self.cleaning_snapshots) - 1
         return {
-            "message": f"Rolled back to: {self.cleaning_steps[step_index]['label']}",
+            "message": f"Rolled back to: {self.cleaning_steps[self.cleaning_index]['label']}",
             "history": self.get_cleaning_history(),
             "info": self.frame_info(self.df_cleaned),
         }
@@ -159,7 +169,6 @@ def load_from_path(file_path: str, ext: str = None) -> pd.DataFrame:
 
 def load_from_bytes(content: bytes, filename: str) -> pd.DataFrame:
     ext = os.path.splitext(filename)[1].lower()
-    from io import BytesIO
     bio = BytesIO(content)
     if ext == ".csv":
         return pd.read_csv(bio)
@@ -176,24 +185,152 @@ def load_from_bytes(content: bytes, filename: str) -> pd.DataFrame:
 
 
 def load_from_url(url: str, fmt: str = "auto") -> pd.DataFrame:
-    if fmt == "auto":
-        if url.endswith(".json"):
-            fmt = "json"
-        elif url.endswith(".tsv"):
-            fmt = "tsv"
-        elif url.endswith((".xlsx", ".xls")):
-            fmt = "excel"
-        else:
-            fmt = "csv"
-    if fmt == "csv":
-        return pd.read_csv(url)
-    elif fmt == "json":
-        return pd.read_json(url)
-    elif fmt == "tsv":
-        return pd.read_csv(url, sep="\t")
-    elif fmt == "excel":
-        return pd.read_excel(url)
+    if not url or not url.strip():
+        raise ValueError("Enter a URL to import.")
+
+    normalized_url = _normalize_dataset_url(url.strip(), fmt)
+    try:
+        content, headers, final_url = _fetch_url_bytes(normalized_url)
+    except URLError as exc:
+        raise ValueError(f"Could not download data from the URL: {exc.reason}") from exc
+
+    resolved_fmt = _infer_url_format(url, final_url, headers, fmt)
+    df = _read_url_content(content, resolved_fmt)
+    _validate_url_frame(df, content)
+    return df
+
+
+def _normalize_dataset_url(url: str, fmt: str) -> str:
+    parsed = urlparse(url)
+    host = parsed.netloc.lower()
+    query = parse_qs(parsed.query)
+
+    if "drive.google.com" in host:
+        file_id = None
+        match = re.search(r"/file/d/([^/]+)", parsed.path)
+        if match:
+            file_id = match.group(1)
+        elif query.get("id"):
+            file_id = query["id"][0]
+        if file_id:
+            return f"https://drive.google.com/uc?export=download&id={file_id}"
+
+    if "docs.google.com" in host and "/spreadsheets/" in parsed.path:
+        match = re.search(r"/spreadsheets/d/([^/]+)", parsed.path)
+        if match:
+            sheet_id = match.group(1)
+            gid = query.get("gid", ["0"])[0]
+            export_fmt = "xlsx" if fmt == "excel" else "csv"
+            return f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format={export_fmt}&gid={gid}"
+
+    return url
+
+
+def _fetch_url_bytes(url: str):
+    opener = build_opener(HTTPCookieProcessor(CookieJar()))
+
+    def read(current_url: str):
+        request = Request(current_url, headers={
+            "User-Agent": "Synthesis/1.0 (+https://github.com/vectrasols/synthesis)",
+            "Accept": "text/csv,application/json,application/vnd.ms-excel,application/octet-stream,*/*",
+        })
+        with opener.open(request, timeout=45) as response:
+            return response.read(), dict(response.headers), response.geturl()
+
+    content, headers, final_url = read(url)
+    confirm_url = _extract_google_drive_confirm_url(content, final_url)
+    if confirm_url:
+        content, headers, final_url = read(confirm_url)
+    return content, headers, final_url
+
+
+def _extract_google_drive_confirm_url(content: bytes, final_url: str) -> Optional[str]:
+    parsed = urlparse(final_url)
+    if "drive.google.com" not in parsed.netloc.lower() or not _looks_like_html(content):
+        return None
+    text = content[:300000].decode("utf-8", errors="ignore")
+    match = re.search(r'href="([^"]*(?:uc|download)[^"]*confirm=[^"]+)"', text)
+    if not match:
+        return None
+    return urljoin("https://drive.google.com", html.unescape(match.group(1)))
+
+
+def _infer_url_format(original_url: str, final_url: str, headers: Dict[str, str], fmt: str) -> str:
+    if fmt != "auto":
+        return fmt
+
+    candidates = [original_url, final_url, _content_disposition_filename(headers)]
+    for candidate in candidates:
+        ext = os.path.splitext(urlparse(candidate or "").path)[1].lower()
+        if ext == ".json":
+            return "json"
+        if ext == ".tsv":
+            return "tsv"
+        if ext in (".xlsx", ".xls"):
+            return "excel"
+        if ext == ".csv":
+            return "csv"
+
+    content_type = (headers.get("Content-Type") or headers.get("content-type") or "").lower()
+    if "json" in content_type:
+        return "json"
+    if "spreadsheet" in content_type or "excel" in content_type:
+        return "excel"
+    if "tab-separated" in content_type:
+        return "tsv"
+    return "csv"
+
+
+def _content_disposition_filename(headers: Dict[str, str]) -> str:
+    value = headers.get("Content-Disposition") or headers.get("content-disposition") or ""
+    match = re.search(r"filename\*=UTF-8''([^;]+)|filename=\"?([^\";]+)", value)
+    if not match:
+        return ""
+    return unquote(match.group(1) or match.group(2) or "")
+
+
+def _read_url_content(content: bytes, fmt: str) -> pd.DataFrame:
+    if _looks_like_html(content):
+        raise ValueError(
+            "The URL returned a web page instead of a downloadable data file. "
+            "For Google Drive, make sure the file is shared with link access and points to a CSV, Excel, JSON, or TSV file."
+        )
+
+    bio = BytesIO(content)
+    try:
+        if fmt == "csv":
+            return pd.read_csv(bio)
+        if fmt == "json":
+            return pd.read_json(bio)
+        if fmt == "tsv":
+            return pd.read_csv(bio, sep="\t")
+        if fmt == "excel":
+            return pd.read_excel(bio)
+    except pd.errors.ParserError as exc:
+        raise ValueError(
+            "Could not parse the URL content as a dataset. "
+            "Use a direct download link, or choose the correct format in the URL import dialog."
+        ) from exc
     raise ValueError(f"Unknown format: {fmt}")
+
+
+def _looks_like_html(content: bytes) -> bool:
+    sample = content[:2048].lstrip().lower()
+    return sample.startswith(b"<!doctype html") or sample.startswith(b"<html") or b"<html" in sample[:500]
+
+
+def _validate_url_frame(df: pd.DataFrame, content: bytes):
+    if df.empty or len(df.columns) == 0:
+        raise ValueError("The URL did not contain any tabular data.")
+    if len(df.columns) != 1:
+        return
+    text = " ".join([str(df.columns[0]), content[:1500].decode("utf-8", errors="ignore")]).lower()
+    html_markers = ["<!doctype html", "<html", "google drive", "error 404", "access denied", "sign in"]
+    if any(marker in text for marker in html_markers):
+        raise ValueError(
+            "The URL returned a message page, not a dataset. "
+            "Use a public direct-download link for the file."
+        )
 
 
 def load_from_text(text: str) -> pd.DataFrame:

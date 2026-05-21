@@ -1,6 +1,6 @@
 {
   "name": "synthesis",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Synthesis - Data Analysis Suite",
   "main": "main/index.js",
   "scripts": {
@@ -28,6 +28,10 @@
   "author": {
     "name": "VectraSols",
     "email": "info@vectrasols.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/vectrasols/synthesis.git"
   },
   "license": "MIT",
   "devDependencies": {
@@ -97,6 +101,8 @@
     },
     "publish": {
       "provider": "github",
+      "owner": "vectrasols",
+      "repo": "synthesis",
       "releaseType": "release"
     }
   }
