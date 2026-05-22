@@ -1,5 +1,5 @@
 """
-server.py — FastAPI server for Synthesis
+server.py — FastAPI server for synthesis-suite
 Spawned by Electron main process, runs on localhost at a dynamic port.
 """
 
@@ -21,7 +21,7 @@ import data_service as ds
 import chart_service as cs
 import ml_service as ml
 
-app = FastAPI(title="Synthesis API", version="1.0.0")
+app = FastAPI(title="synthesis-suite API", version="1.0.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -35,7 +35,7 @@ app.add_middleware(
 
 @app.get("/api/health")
 def health():
-    return {"status": "ok", "app": "Synthesis"}
+    return {"status": "ok", "app": "synthesis-suite"}
 
 
 # ─── Data Loading ────────────────────────────────────────────────────────────────

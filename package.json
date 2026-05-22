@@ -1,7 +1,7 @@
 {
-  "name": "synthesis",
+  "name": "synthesis-suite",
   "version": "1.0.2",
-  "description": "Synthesis - Data Analysis & Machine Learning Workbench",
+  "description": "synthesis-suite - Data Analysis & Machine Learning Workbench",
   "main": "main/index.js",
   "scripts": {
     "build:ts": "tsc -p tsconfig.json",
@@ -31,7 +31,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/vectrasols/synthesis.git"
+    "url": "https://github.com/vectrasols/synthesis-suite.git"
   },
   "license": "MIT",
   "devDependencies": {
@@ -45,8 +45,8 @@
   },
   "build": {
     "appId": "com.synthesis.suite",
-    "productName": "Synthesis",
-    "copyright": "Copyright © 2026 Synthesis",
+    "productName": "synthesis-suite",
+    "copyright": "Copyright © 2026 synthesis-suite",
     "directories": {
       "output": "dist",
       "buildResources": "assets"
@@ -102,7 +102,7 @@
     "publish": {
       "provider": "github",
       "owner": "vectrasols",
-      "repo": "synthesis",
+      "repo": "synthesis-suite",
       "releaseType": "release"
     }
   }

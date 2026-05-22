@@ -1,6 +1,6 @@
 # Code of Conduct
 
-Synthesis should be a welcoming project for contributors with different backgrounds and experience levels.
+synthesis-suite should be a welcoming project for contributors with different backgrounds and experience levels.
 
 ## Expected Behavior
 

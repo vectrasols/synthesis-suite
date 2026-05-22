@@ -1,6 +1,6 @@
-# Synthesis
+# synthesis-suite
 
-Synthesis is an open-source desktop data analysis and machine-learning workbench built with Electron, FastAPI, pandas, scikit-learn, and Plotly.
+synthesis-suite is an open-source desktop data analysis and machine-learning workbench built with Electron, FastAPI, pandas, scikit-learn, and Plotly.
 
 It supports local file import, manual/paste/URL data loading, data cleaning, interactive visualization, preprocessing, feature engineering, model training, and runnable algorithm demos.
 

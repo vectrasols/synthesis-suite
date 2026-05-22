@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for helping improve Synthesis. This project welcomes bug reports, feature ideas, documentation fixes, tests, and code contributions.
+Thanks for helping improve synthesis-suite. This project welcomes bug reports, feature ideas, documentation fixes, tests, and code contributions.
 
 ## Development Setup
 
@@ -26,7 +26,7 @@ npm run setup:backend
 npm start
 ```
 
-Optional Conda users can create any env name and point Synthesis at it:
+Optional Conda users can create any env name and point synthesis-suite at it:
 
 ```bash
 conda create -n synthesis python=3.11 -y
@@ -60,7 +60,7 @@ npm run smoke:backend
 
 ## Packaging Contributions
 
-Synthesis ships an Electron app plus a Python backend binary. That backend binary must be built on the target OS, so release packaging is handled by `.github/workflows/release.yml`.
+synthesis-suite ships an Electron app plus a Python backend binary. That backend binary must be built on the target OS, so release packaging is handled by `.github/workflows/release.yml`.
 
 Use local package scripts only for the platform you are currently on:
 
