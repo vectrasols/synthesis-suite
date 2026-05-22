@@ -72,6 +72,67 @@ npm run build:linux
 
 When changing installer behavior, check the matching GitHub Actions job or test on the matching OS.
 
+## Solving Issues (How to contribute by fixing issues)
+
+Follow this workflow to efficiently pick up and resolve issues so maintainers can review and merge your work quickly.
+
+- **Find an issue**: Look for issues labeled `good first issue`, `help wanted`, or `bug`. Use the issue list on GitHub or run `gh issue list --label "good first issue"` locally.
+- **Comment to claim**: Post a short comment on the issue like "Taking this" so other contributors know it's being worked on. Use `gh issue comment <number> --body "Taking this"` if you prefer the CLI.
+- **Reproduce & document**: Reproduce the bug locally and update the issue with reproduction steps, environment, and minimal reproduction if possible.
+- **Create a branch**: Use a descriptive branch name that references the issue number, e.g. `issue/123-fix-crash-on-load`.
+
+	```bash
+	git checkout -b issue/123-fix-crash-on-load
+	```
+
+- **Make focused changes**: Keep commits small and focused. Update or add tests that cover the bug or feature. If a change touches multiple areas, split it into separate PRs when practical.
+- **Update the issue**: Push progress as comments on the issue (what you've tried, blockers, ETA). If you need help from maintainers, tag them in the issue or request review early.
+- **Run checks**: Before opening a PR run the project's checks:
+
+	```bash
+	npm run check:js
+	npm run smoke:backend:quick
+	npm run build:ts
+	```
+
+- **Open a PR**: Link the issue in the PR title or description. Use keywords to auto-close the issue when merged, e.g. `Fixes #123`.
+
+- **PR checklist** (add this to your PR description):
+	- **Related issue**: link to the issue (e.g. `Fixes #123`).
+	- **Reproduction steps**: short list of how to reproduce the bug or verify the fix.
+	- **Tests**: included or updated tests, or a note explaining why tests aren't applicable.
+	- **Screenshots / recordings**: for UI changes.
+	- **CI**: all CI checks pass locally for you.
+
+- **Address review feedback**: Respond to review comments, update the branch, and keep the PR focused. If the change grows large, split work into follow-up issues/PRs.
+- **Closing issues**: Use `Fixes #<number>` in the PR body to automatically close the issue when merged. If you cannot finish the fix, update the issue with what remains and unassign yourself.
+
+### Triage and labeling (for maintainers/triagers)
+
+- When triaging, add labels such as `type:bug`, `type:enhancement`, `priority:high`, and `good first issue` when appropriate.
+- Add reproduction steps and an initial severity estimate to new bug reports to help contributors pick them up quickly.
+
+Following this workflow helps contributors and maintainers collaborate efficiently and keeps issue resolution predictable and transparent.
+
+### Current open issues (snapshot)
+
+Below are a few current open issues you can use as examples or pick up to work on. This snapshot was captured on 2026-05-22 — check the repository's Issues page for the latest list.
+
+- [#27](https://github.com/vectrasols/synthesis/issues/27) — Add a changelog or audit trail for cleaning actions (labels: documentation, enhancement)
+- [#26](https://github.com/vectrasols/synthesis/issues/26) — Add clearer validation messages for required inputs (labels: bug, good first issue)
+- [#25](https://github.com/vectrasols/synthesis/issues/25) — Add import support for previously exported models (labels: enhancement, help wanted)
+- [#24](https://github.com/vectrasols/synthesis/issues/24) — Add side-by-side comparison between trained models (labels: enhancement, help wanted)
+- [#23](https://github.com/vectrasols/synthesis/issues/23) — Add dataset preview and class distribution summary before training (labels: enhancement, help wanted)
+- [#22](https://github.com/vectrasols/synthesis/issues/22) — Add persistent user preferences for theme and layout (labels: enhancement, good first issue)
+
+To list issues locally with the GitHub CLI, try:
+
+```bash
+gh issue list --state open --label "good first issue"
+gh issue view <number> --web
+```
+
+
 ## Code Style
 
 - Keep UI changes consistent with the existing Electron renderer structure.
