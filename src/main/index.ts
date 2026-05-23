@@ -137,46 +137,129 @@ async function startPythonBackend() {
   }
 
   const args = ['--port', String(backendPort)];
+  if (!isDev && !fs.existsSync(serverScript)) {
+    throw new Error(`Bundled backend executable not found: ${serverScript}`);
+  }
+
   const spawnOptions = {
     stdio: ['ignore', 'pipe', 'pipe'],
     detached: false,
     env: { ...process.env },
+    windowsHide: true,
+  };
+  const startupOutput = [];
+  const recordStartupOutput = (label, data) => {
+    const text = data.toString().trim();
+    if (!text) return text;
+    startupOutput.push(`[${label}] ${text}`);
+    while (startupOutput.length > 30) startupOutput.shift();
+    return text;
   };
 
-    if (pythonExe) {
+  if (pythonExe) {
     console.log(`[Synthesis Suite] Python executable: ${pythonExe}`);
     pythonProcess = spawn(pythonExe, [serverScript, ...args], spawnOptions);
   } else {
+    console.log(`[Synthesis Suite] Backend executable: ${serverScript}`);
     pythonProcess = spawn(serverScript, args, spawnOptions);
   }
 
-  pythonProcess.stdout?.on('data', (d) => console.log('[Python]', d.toString().trim()));
-  pythonProcess.stderr?.on('data', (d) => console.error('[Python ERR]', d.toString().trim()));
+  pythonProcess.stdout?.on('data', (d) => {
+    const text = recordStartupOutput('stdout', d);
+    if (text) console.log('[Python]', text);
+  });
+  pythonProcess.stderr?.on('data', (d) => {
+    const text = recordStartupOutput('stderr', d);
+    if (text) console.error('[Python ERR]', text);
+  });
   pythonProcess.on('exit', (code) => console.log(`[Python] exited with code ${code}`));
 
   // Wait until server is ready
-  await waitForServer(backendPort, 30000);
+  await waitForServer(
+    backendPort,
+    isDev ? 30000 : 120000,
+    pythonProcess,
+    () => startupOutput.join('\n')
+  );
   console.log(`[Synthesis Suite] Backend ready on port ${backendPort}`);
 }
 
 // Poll /api/health until server responds
-function waitForServer(port, timeoutMs) {
+function formatStartupOutput(getStartupOutput) {
+  const output = getStartupOutput?.();
+  return output ? `\n\nBackend output:\n${output}` : '';
+}
+
+function waitForServer(port, timeoutMs, backendProcess = null, getStartupOutput = null) {
   const http = require('http');
   const startTime = Date.now();
+  let settled = false;
+  let retryTimer = null;
 
   return new Promise<void>((resolve, reject) => {
+    function cleanup() {
+      if (retryTimer) clearTimeout(retryTimer);
+      backendProcess?.off('exit', onExit);
+      backendProcess?.off('error', onError);
+    }
+
+    function finish(error = null) {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      if (error) reject(error);
+      else resolve();
+    }
+
+    function fail(message) {
+      finish(new Error(`${message}${formatStartupOutput(getStartupOutput)}`));
+    }
+
+    function onExit(code, signal) {
+      const detail = signal ? `signal ${signal}` : `code ${code}`;
+      fail(`Python backend exited before it was ready (${detail})`);
+    }
+
+    function onError(error) {
+      fail(`Could not launch Python backend: ${error.message}`);
+    }
+
+    function scheduleCheck() {
+      if (settled || retryTimer) return;
+      retryTimer = setTimeout(() => {
+        retryTimer = null;
+        check();
+      }, 300);
+    }
+
     function check() {
+      if (settled) return;
       if (Date.now() - startTime > timeoutMs) {
-        reject(new Error('Python backend did not start in time'));
+        fail(`Python backend did not start in time after ${Math.round(timeoutMs / 1000)} seconds`);
         return;
       }
+
+      let retried = false;
+      const retryOnce = () => {
+        if (retried) return;
+        retried = true;
+        scheduleCheck();
+      };
+
       const req = http.get(`http://127.0.0.1:${port}/api/health`, (res) => {
-        if (res.statusCode === 200) resolve();
-        else setTimeout(check, 300);
+        res.resume();
+        if (res.statusCode === 200) finish();
+        else retryOnce();
       });
-      req.on('error', () => setTimeout(check, 300));
-      req.setTimeout(500, () => { req.destroy(); setTimeout(check, 300); });
+      req.on('error', retryOnce);
+      req.setTimeout(1000, () => {
+        req.destroy();
+        retryOnce();
+      });
     }
+
+    backendProcess?.once('exit', onExit);
+    backendProcess?.once('error', onError);
     check();
   });
 }

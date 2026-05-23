@@ -6,6 +6,7 @@ Spawned by Electron main process, runs on localhost at a dynamic port.
 import sys
 import os
 import argparse
+import importlib
 from typing import Optional
 
 import uvicorn
@@ -17,9 +18,21 @@ from pydantic import BaseModel
 # Add backend dir to path
 sys.path.insert(0, os.path.dirname(__file__))
 
-import data_service as ds
-import chart_service as cs
-import ml_service as ml
+
+class LazyModule:
+    def __init__(self, module_name: str):
+        self.module_name = module_name
+        self.module = None
+
+    def __getattr__(self, name):
+        if self.module is None:
+            self.module = importlib.import_module(self.module_name)
+        return getattr(self.module, name)
+
+
+ds = LazyModule("data_service")
+cs = LazyModule("chart_service")
+ml = LazyModule("ml_service")
 
 app = FastAPI(title="Synthesis Suite API", version="1.0.0")
 
