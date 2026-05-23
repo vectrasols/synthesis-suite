@@ -48,7 +48,7 @@
 
   // ── App version ────────────────────────────────────────────────────────────
   if (window.electronAPI) {
-    const ver = await window.electronAPI.getVersion().catch(() => '1.2.0');
+    const ver = await window.electronAPI.getVersion().catch(() => '1.2.3');
     const el = document.getElementById('appVersion');
     if (el) el.textContent = `v${ver}`;
   }

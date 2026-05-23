@@ -1,6 +1,6 @@
 {
   "name": "synthesis-suite",
-  "version": "1.2.0",
+  "version": "1.2.3",
   "description": "Synthesis Suite - Data Analysis & Machine Learning Workbench",
   "main": "main/index.js",
   "scripts": {

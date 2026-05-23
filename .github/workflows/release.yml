@@ -101,16 +101,35 @@ jobs:
       - name: Smoke test backend
         run: npm run smoke:backend:quick
 
-      - name: Build and publish installer
-        run: npm run ${{ matrix.script }} -- --publish always
+      - name: Build installer
+        run: npm run ${{ matrix.script }} -- --publish never
 
       - name: Build payload update assets
         run: npm run build:payloads
 
-      - name: Publish payload update assets
+      - name: Publish release assets
         if: startsWith(github.ref, 'refs/tags/')
         shell: bash
-        run: gh release upload "$GITHUB_REF_NAME" dist/payload-* --clobber --repo "$GITHUB_REPOSITORY"
+        env:
+          RELEASE_ASSET_GLOBS: ${{ matrix.paths }}
+        run: |
+          shopt -s nullglob
+
+          assets=()
+          while IFS= read -r pattern; do
+            [[ -z "$pattern" ]] && continue
+            for file in $pattern; do
+              [[ -f "$file" ]] && assets+=("$file")
+            done
+          done <<< "$RELEASE_ASSET_GLOBS"
+
+          if (( ${#assets[@]} == 0 )); then
+            echo "No release assets found in dist."
+            exit 1
+          fi
+
+          printf 'Uploading release asset: %s\n' "${assets[@]}"
+          gh release upload "$GITHUB_REF_NAME" "${assets[@]}" --clobber --repo "$GITHUB_REPOSITORY"
 
       - name: Upload workflow artifact
         uses: actions/upload-artifact@v6

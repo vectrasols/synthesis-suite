@@ -24,8 +24,8 @@ Installers are produced from tagged GitHub releases:
 Create a release by pushing a version tag:
 
 ```bash
-git tag v1.2.0
-git push origin v1.2.0
+git tag v1.2.3
+git push origin v1.2.3
 ```
 
 The release workflow builds each installer on its matching GitHub runner. This matters because the Python backend binary is OS-specific. Building Windows, macOS, and Linux installers from one Linux machine is not reliable for this project.
