@@ -71,7 +71,7 @@
         "nsis"
       ],
       "icon": "assets/icon.ico",
-      "artifactName": "${productName}-Setup-${version}.${ext}"
+      "artifactName": "Synthesis-Suite-Setup-${version}.${ext}"
     },
     "nsis": {
       "oneClick": true,
@@ -87,7 +87,7 @@
       ],
       "icon": "assets/icon.icns",
       "category": "public.app-category.developer-tools",
-      "artifactName": "${productName}-${version}-mac.${ext}"
+      "artifactName": "Synthesis-Suite-${version}-mac.${ext}"
     },
     "linux": {
       "target": [
@@ -98,7 +98,7 @@
       "icon": "assets/icon.png",
       "category": "Science",
       "maintainer": "Vectrasols <info@vectrasols.com>",
-      "artifactName": "${productName}-${version}.${ext}"
+      "artifactName": "Synthesis-Suite-${version}.${ext}"
     },
     "publish": {
       "provider": "github",
