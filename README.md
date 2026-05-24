@@ -1,57 +1,73 @@
 # Synthesis Suite
 
-Synthesis Suite is an open-source desktop data analysis and machine-learning workbench built with Electron, FastAPI, pandas, scikit-learn, and Plotly.
+**A professional desktop data analysis and machine-learning workbench**
 
-It supports local file import, manual/paste/URL data loading, data cleaning, interactive visualization, preprocessing, feature engineering, model training, and runnable algorithm demos.
+Synthesis Suite is an open-source desktop application for data scientists, analysts, and engineers built with Electron, FastAPI, pandas, scikit-learn, and Plotly.
 
-## Highlights
+<div align="center">
 
-- CSV, Excel, JSON, TSV, Parquet, URL, clipboard, manual, and sample dataset import
-- Interactive 2D and 3D Plotly charts with export support
-- Missing-value handling, outlier removal, dtype conversion, scaling, binarization, encoding, feature selection, and feature extraction
-- Supervised, unsupervised, semi-supervised, anomaly-detection, ensemble, and reinforcement-learning demos
-- Local FastAPI backend spawned by Electron
-- Native installers for Windows, macOS, and Linux through GitHub Actions
+![Synthesis Suite Main Interface](https://via.placeholder.com/800x600?text=Synthesis+Suite+Screenshot)
 
-## Installers
+*[Add screenshot: src/renderer/index.html main page]*
 
-Installers are produced from tagged GitHub releases:
+</div>
 
-- Windows: one-click NSIS setup executable
-- macOS: DMG and ZIP packages
-- Linux: AppImage, DEB, and RPM packages
+### Key Features
 
-Create a release by pushing a version tag:
+- **Data Import**: CSV, Excel, JSON, TSV, Parquet, URL, clipboard, manual, and sample dataset support
+- **Visualization**: Interactive 2D and 3D Plotly charts with export capabilities
+- **Data Cleaning**: Missing-value handling, outlier removal, dtype conversion, scaling, binarization, and encoding
+- **Feature Engineering**: Feature selection and extraction tools
+- **Machine Learning**: Supervised, unsupervised, semi-supervised, anomaly-detection, ensemble, and reinforcement-learning algorithm demonstrations
+- **Local Backend**: FastAPI server spawned by Electron for secure, offline data processing
 
+## Prerequisites
+
+### System Requirements
+- **Node.js**: 22 or newer
+- **Python**: 3.11 or newer
+- **npm**: 8 or newer
+- **Git**: 2.0 or newer
+
+### Optional
+- **Conda**: for advanced environment management (standard Python virtual environment recommended)
+
+## Getting Started
+
+### For Users
+
+Download the latest installer from [GitHub Releases](https://github.com/your-org/synthesis-suite/releases):
+- **Windows**: `synthesis-suite-setup-x.x.x.exe`
+- **macOS**: `synthesis-suite-x.x.x.dmg` or `synthesis-suite-x.x.x.zip`
+- **Linux**: `synthesis-suite-x.x.x.AppImage`, `.deb`, or `.rpm`
+
+#### ⚠️ Security Warnings on First Launch
+
+**Windows Users:**
+> When you first run the installer, Microsoft Defender SmartScreen may display a warning stating the publisher is unknown.
+> 1. Click **"More info"**
+> 2. Click **"Run anyway"**
+> 
+> This warning appears because Synthesis Suite is not code-signed. Download only from the [official GitHub releases](https://github.com/your-org/synthesis-suite/releases).
+
+**macOS Users:**
+> macOS Gatekeeper may block the application on first launch with a security warning.
+> 1. **Close** the warning dialog
+> 2. Open **System Settings** → **Privacy & Security**
+> 3. Scroll down to **Security** section
+> 4. Find the Synthesis Suite entry and click **"Open Anyway"**
+> 5. **Enter your Mac password** to permanently trust the application
+> 
+> You only need to do this once. Future launches will open normally.
+
+### For Contributors
+
+#### Setup Development Environment
+
+**Linux/macOS:**
 ```bash
-git tag v1.2.3
-git push origin v1.2.3
-```
-
-The release workflow builds each installer on its matching GitHub runner. This matters because the Python backend binary is OS-specific. Building Windows, macOS, and Linux installers from one Linux machine is not reliable for this project.
-
-Releases also publish payload update assets next to the installers:
-
-- `payload-manifest-<platform>-<arch>.json`
-- `payload-renderer-<platform>-<arch>-<version>.tgz`
-- `payload-backend-<platform>-<arch>-<version>.tgz`
-
-Users still install only the normal platform installer. Packaged apps use these payload assets for smaller renderer/backend updates, while `electron-updater` remains available for full launcher/installer updates.
-
-## Requirements
-
-- Node.js 22 or newer
-- Python 3.11
-- npm
-- Git
-
-Conda is optional. A normal Python virtual environment is the recommended path for contributors.
-
-## Local Development
-
-From this directory:
-
-```bash
+git clone https://github.com/your-org/synthesis-suite.git
+cd synthesis-suite
 npm install
 python3 -m venv .venv
 source .venv/bin/activate
@@ -60,9 +76,10 @@ npm run setup:backend
 npm start
 ```
 
-On Windows PowerShell:
-
+**Windows (PowerShell):**
 ```powershell
+git clone https://github.com/your-org/synthesis-suite.git
+cd synthesis-suite
 npm install
 py -3.11 -m venv .venv
 .\.venv\Scripts\Activate.ps1
@@ -71,87 +88,109 @@ npm run setup:backend
 npm start
 ```
 
-Electron resolves the Python backend in this order during development:
+#### Python Backend Resolution
 
-1. `SYNTHESIS_PYTHON`, if it points to a runnable Python executable
-2. `SYNTHESIS_VENV`, if set
+During development, Electron searches for the Python backend in this order:
+1. `SYNTHESIS_PYTHON` environment variable (must point to a valid Python executable)
+2. `SYNTHESIS_VENV` environment variable
 3. `.venv` in the project root
-4. The active `VIRTUAL_ENV`
-5. The active `CONDA_PREFIX`
-6. Conda env named by `SYNTHESIS_CONDA_ENV`, if set
+4. Active `VIRTUAL_ENV`
+5. Active `CONDA_PREFIX`
+6. Conda environment named by `SYNTHESIS_CONDA_ENV`
 7. System `python3` or `python`
 
-## Verification
+## Development Workflow
 
-Run the backend smoke suite:
+### Quality Checks
 
+**Backend Smoke Tests:**
 ```bash
-npm run smoke:backend
+npm run smoke:backend        # Full test suite
+npm run smoke:backend:quick  # Faster smoke tests
 ```
 
-Run a faster smoke suite:
-
+**Code Quality:**
 ```bash
-npm run smoke:backend:quick
+npm run check:js  # TypeScript and JavaScript syntax validation
 ```
 
-Check TypeScript and generated JavaScript syntax:
+### Building
 
+**For your current platform:**
 ```bash
-npm run check:js
+npm run pack          # Quick package for local testing
+npm run build:linux   # Linux (use on Linux)
+npm run build:win     # Windows (use on Windows)
+npm run build:mac     # macOS (use on macOS)
 ```
 
-## Packaging
-
-Local packaging is intended for the OS you are currently using:
-
+**Backend binary packaging:**
 ```bash
-npm run pack
-npm run build:linux
+npm run build:backend  # Bundle Python backend before packaging
 ```
 
-Use these on their matching platforms:
+> **Note**: For production releases across all platforms, use the GitHub Actions release workflow instead of manual cross-compilation. Push a version tag `v*.*.*` and GitHub will automatically build Windows, macOS, and Linux installers in parallel.
 
-```bash
-npm run build:win
-npm run build:mac
-npm run build:linux
+## Project Architecture
+
+```
+synthesis-suite/
+├── main/                      # Generated Electron main process
+│   ├── index.js              # Main process entry point
+│   ├── preload.js            # Preload script for IPC security
+│   └── updater.js            # App update logic
+├── src/                       # TypeScript source code
+│   ├── main/                 # Electron main process source
+│   └── renderer/             # UI and renderer logic
+├── renderer/                 # Generated HTML/CSS/JS desktop UI
+│   ├── index.html            # Main application shell
+│   ├── css/                  # Application styles
+│   └── js/                   # Generated JavaScript
+├── python-backend/           # FastAPI backend services
+│   ├── server.py             # FastAPI application
+│   ├── data_service.py       # Data processing service
+│   ├── chart_service.py      # Charting and visualization
+│   ├── ml_service.py         # Machine learning service
+│   └── requirements.txt      # Python dependencies
+├── scripts/                  # Build and utility scripts
+├── .github/workflows/        # CI/CD automation
+└── assets/                   # Icons and build resources
 ```
 
-The backend is bundled before Electron packaging with:
+### Technology Stack
 
-```bash
-npm run build:backend
-```
-
-For all-platform releases, use the GitHub Actions release workflow instead of trying to cross-compile from Linux. Push a `v*.*.*` tag and GitHub will build Windows, macOS, and Linux artifacts in parallel.
-
-The Windows and macOS builds are unsigned. Operating-system security warnings will appear when installing or opening the app.
-
-On Windows, Microsoft Defender SmartScreen will warn that the installer is from an unknown publisher. Download Synthesis Suite only from the official GitHub release, then bypass the warning by clicking **More info** and **Run anyway**.
-
-On macOS, Gatekeeper will block the unsigned app the first time it opens. To trust it:
-
-1. Double-click the app to trigger the warning block.
-2. Immediately go to Apple menu > System Settings > Privacy & Security.
-3. Scroll down to the Security section.
-4. Find the message that the app was blocked and click **Open Anyway**.
-5. Enter the Mac login password to permanently trust the binary.
-
-## Project Structure
-
-- `main/` - generated Electron main process, preload bridge, updater setup
-- `src/` - TypeScript source for Electron and renderer logic
-- `renderer/` - HTML/CSS and generated JavaScript desktop UI
-- `python-backend/` - FastAPI backend and data/ML/chart services
-- `scripts/` - development, Python launcher, backend build, and smoke-test scripts
-- `.github/workflows/` - CI and release automation
-- `assets/` - app icons and build resources
+- **Frontend**: Electron, TypeScript, Plotly.js
+- **Backend**: FastAPI, pandas, scikit-learn, NumPy, SciPy
+- **Build**: npm, webpack
+- **CI/CD**: GitHub Actions
 
 ## Contributing
 
-Issues and pull requests are welcome. Please read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a PR.
+We welcome contributions from the community! Please review our [CONTRIBUTING.md](CONTRIBUTING.md) guidelines before opening an issue or pull request.
+
+### How to Contribute
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+### Running Tests Before Submitting
+
+```bash
+npm run check:js           # Lint and type-check
+npm run smoke:backend      # Run backend tests
+```
+
+## Security
+
+This project is unsigned and for development/community use. See [SECURITY.md](SECURITY.md) for details on reporting vulnerabilities.
 
 ## License
 
-MIT. See [LICENSE](LICENSE).
+This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
+
+---
+
+**[More information](https://github.com/your-org/synthesis-suite)** | **[Report an Issue](https://github.com/your-org/synthesis-suite/issues)** | **[Code of Conduct](CODE_OF_CONDUCT.md)**
